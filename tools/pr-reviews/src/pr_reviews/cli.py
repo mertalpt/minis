@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import shutil
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -108,8 +109,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.json:
         print(render.to_json(queue))
     else:
-        links = sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
-        print(render.to_table(queue, links=links))
+        terminal = sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
+        print(
+            render.to_table(
+                queue,
+                width=shutil.get_terminal_size().columns if terminal else None,
+                links=terminal,
+                color=terminal and not os.environ.get("NO_COLOR"),
+            )
+        )
     return 0
 
 

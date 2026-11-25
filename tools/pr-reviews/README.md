@@ -42,17 +42,22 @@ requested from you, directly or through a team you belong to.
 | `--json` | Print a JSON array instead of a table. |
 | `--config PATH` | Read this configuration file instead of the default one. |
 
-Each row of the table shows:
+The table has an `Overdue` section and a `Queue` section, each in ranked
+order. Each pull request takes two lines: the columns below, then its full
+URL.
 
 | Column | Meaning |
 | --- | --- |
-| `DUE` | `OVERDUE` once the wait reaches the limit. |
 | `SCORE` | The priority: size score plus time score. |
 | `SIZE`, `BUCKET` | Lines changed outside ignored files, and the size bucket. |
 | `WAITED` | Working days waited, as described under [Scoring](#scoring). |
 | `REQUEST` | `direct` if your review was requested from you, `team` if only through a team. |
-| `APPROVED` | `approved` if GitHub's review decision is `APPROVED`. |
-| `PR`, `TITLE`, `URL` | `owner/repo#number`, the title, and the full URL. On a terminal, the reference is also a link. |
+| `PR` | `owner/repo#number`. On a terminal, it is also a link to the pull request. |
+| `TITLE` | The title, followed by `approved` if GitHub's review decision is `APPROVED`. |
+
+On a terminal, titles are shortened to fit its width, and approved pull
+requests and URLs are dimmed. Setting `NO_COLOR` turns the styling off. When
+the output is not a terminal, titles are kept whole and nothing is styled.
 
 `--json` prints the same information, with one object per pull request in
 ranked order, using the keys `rank`, `overdue`, `priority`, `size_score`,
@@ -124,3 +129,5 @@ Approved pull requests keep their place.
 - Weekends are Saturday and Sunday in the machine's time zone, for every
   reviewer and author.
 - Only GitHub.com is supported.
+- Titles with wide characters, such as emoji or CJK text, can shift the
+  table's alignment and overflow the terminal width.
