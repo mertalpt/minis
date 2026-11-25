@@ -12,8 +12,7 @@ accepting that every run uses the newest `main`.
 
 ## Context
 
-- The users are the maintainer and teammates on Ubuntu 24.04 and 26.04 laptops
-  with `uv` installed.
+- Tools run on machines with `uv` installed, on Ubuntu 24.04 or newer.
 - `uvx --from "git+<repository>#subdirectory=tools/<name>" <name>` builds the
   tool into uv's cache and runs it, fetching the branch head on every run. What
   it leaves behind is in uv's cache, which `uv cache clean` removes.
@@ -51,3 +50,5 @@ accepting that every run uses the newest `main`.
 
 - A user needs to stay on an older version of a tool.
 - A tool needs a runtime or system packages that uv cannot provide.
+- The repository becomes public: the private-access context in this record
+  and the note in `README.md` no longer apply.
