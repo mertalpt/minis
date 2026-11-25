@@ -43,7 +43,7 @@ replacing `<name>` with the tool's name:
 
 ```bash
 cd tools
-uv init --package --python 3.12 --author-from none <name>
+uv init --package --python 3.12 <name>
 cd <name>
 uv add --dev --bounds major mypy pytest ruff
 ```
