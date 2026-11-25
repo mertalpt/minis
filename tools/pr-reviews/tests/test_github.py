@@ -166,3 +166,25 @@ def test_rejected_credentials_do_not_print_the_token(
     assert request.full_url == "https://api.github.com/graphql"
     assert request.get_header("Authorization") == f"bearer {TOKEN}"
     assert json.loads(request.data)["variables"]["q"] == github.SEARCH_DIRECT
+
+
+def test_queue_shows_the_top_requests(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Any
+) -> None:
+    fake = FakeGitHub(
+        {
+            (github.SEARCH_DIRECT, None): page([]),
+            (github.SEARCH_ALL, None): page([pr_node(n) for n in range(1, 26)]),
+        }
+    )
+    monkeypatch.setenv("GH_TOKEN", TOKEN)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setattr(github, "http_transport", lambda token: fake)
+
+    assert cli.main(["queue"]) == 0
+    out = capsys.readouterr().out
+    assert out.count("https://github.com/acme/app/pull/") == 20
+    assert "5 more" in out
+
+    assert cli.main(["queue", "--top", "0", "--json"]) == 0
+    assert len(json.loads(capsys.readouterr().out)) == 25

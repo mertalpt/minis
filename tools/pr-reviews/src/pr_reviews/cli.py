@@ -62,6 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DAYS",
         help="working days after which a pull request is overdue",
     )
+    queue.add_argument(
+        "--top",
+        type=_non_negative_int,
+        metavar="N",
+        help="show only the N highest-ranked pull requests; 0 shows all (default: 20)",
+    )
     queue.add_argument("--json", action="store_true", help="print JSON")
     return parser
 
@@ -73,6 +79,16 @@ def _positive_float(value: str) -> float:
         number = 0
     if not number > 0:
         raise argparse.ArgumentTypeError(f"not a positive number: {value}")
+    return number
+
+
+def _non_negative_int(value: str) -> int:
+    try:
+        number = int(value)
+    except ValueError:
+        number = -1
+    if number < 0:
+        raise argparse.ArgumentTypeError(f"not a non-negative integer: {value}")
     return number
 
 
@@ -106,13 +122,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         ignore=cfg.ignore,
         ignore_by_repo={repo: r.ignore for repo, r in cfg.repos.items()},
     )
+    top = cfg.top if args.top is None else args.top
+    shown = queue[:top] if top else queue
     if args.json:
-        print(render.to_json(queue))
+        print(render.to_json(shown))
     else:
         terminal = sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
         print(
             render.to_table(
-                queue,
+                shown,
+                hidden=len(queue) - len(shown),
                 width=shutil.get_terminal_size().columns if terminal else None,
                 links=terminal,
                 color=terminal and not os.environ.get("NO_COLOR"),

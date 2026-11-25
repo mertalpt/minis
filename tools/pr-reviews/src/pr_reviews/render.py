@@ -46,7 +46,12 @@ def to_json(queue: Sequence[Ranked]) -> str:
 
 
 def to_table(
-    queue: Sequence[Ranked], *, width: int | None, links: bool, color: bool
+    queue: Sequence[Ranked],
+    *,
+    hidden: int = 0,
+    width: int | None,
+    links: bool,
+    color: bool,
 ) -> str:
     """Return the queue as a table in ranked order.
 
@@ -55,7 +60,8 @@ def to_table(
     then its URL.
 
     Args:
-        queue: The ranked pull requests.
+        queue: The ranked pull requests to show.
+        hidden: How many lower-ranked pull requests are not shown.
         width: The columns to fit titles into, or None to keep them whole.
         links: Whether to make each PR reference a terminal hyperlink.
         color: Whether to style the output with ANSI escape codes.
@@ -108,6 +114,8 @@ def to_table(
                 title = _truncate(title, title_width)
             lines.append(INDENT + GAP.join([*cells, title]))
             lines.append(url_indent + _style(pr.url, DIM, color))
+    if hidden:
+        lines.append(f"... and {hidden} more; --top 0 shows all.")
     return "\n".join(lines)
 
 

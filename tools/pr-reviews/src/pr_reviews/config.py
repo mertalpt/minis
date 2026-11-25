@@ -4,7 +4,14 @@ import os
 import tomllib
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveFloat, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeInt,
+    PositiveFloat,
+    ValidationError,
+)
 
 DEFAULT_IGNORE: tuple[str, ...] = (
     "uv.lock",
@@ -41,6 +48,7 @@ class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     limit_days: PositiveFloat = 8
+    top: NonNegativeInt = 20
     direct_only: bool = False
     hide_approved: bool = False
     include_owners: list[str] = []

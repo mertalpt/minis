@@ -39,6 +39,7 @@ requested from you, directly or through a team you belong to.
 | `--direct-only` | Only include requests made to you directly, not through a team. |
 | `--hide-approved` | Hide pull requests that GitHub reports as approved. |
 | `--limit-days DAYS` | Working days after which a pull request is overdue. Default: 8. |
+| `--top N` | Show only the N highest-ranked pull requests; `0` shows all. Default: 20. |
 | `--json` | Print a JSON array instead of a table. |
 | `--config PATH` | Read this configuration file instead of the default one. |
 
@@ -76,6 +77,7 @@ The tool reads `$XDG_CONFIG_HOME/pr-reviews/config.toml`, by default
 
 ```toml
 limit_days = 8          # working days until a pull request is overdue
+top = 20                # as --top
 direct_only = false     # as --direct-only
 hide_approved = false   # as --hide-approved
 include_owners = []     # as --owner; flags add to this list
@@ -121,7 +123,9 @@ one at 7.5 days scores 21.
 A pull request is **overdue** when its wait is equal to or longer than the
 limit. The queue lists overdue pull requests first, oldest first, then the
 rest by priority, highest first. Equal priorities are listed oldest first.
-Approved pull requests keep their place.
+Approved pull requests keep their place. Every request is fetched and
+ranked; `--top` only limits how many are shown, in the table and in
+`--json`.
 
 ## Known gaps
 

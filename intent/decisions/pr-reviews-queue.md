@@ -85,6 +85,9 @@ fixed scoring tables that need retuning when the team's review habits change.
   scoring 0, 1, 2, 3, 5, 8, 13, and 21.
 - Overdue pull requests come first, oldest first. The rest follow by size
   score plus time score, highest first. Equal scores order oldest first.
+- The tool fetches and ranks every request, then shows the 20 highest-ranked
+  by default, about what fits a full-height terminal at 1080p. A setting and
+  a flag change the number or show all.
 
 ## Consequences
 
@@ -138,6 +141,8 @@ fixed scoring tables that need retuning when the team's review habits change.
 - Reading only `gh auth token`, or calling `gh api`: makes `gh` a requirement
   of a tool that should need only uv, and `gh api` starts a process per
   query.
+- Fetching only as many pull requests as are shown: search does not return
+  them in queue order, so the top of the queue could be missing.
 - Owner filters as `org:` or `user:` search qualifiers: the qualifier differs
   by owner kind, exclusion needs negated qualifiers, and review queues are
   small enough to filter after the search.
