@@ -25,8 +25,21 @@ Changes reach `main` through pull requests, which are squash-merged, so the
 pull request title becomes the commit subject on `main`.
 
 Titles and commit subjects follow Conventional Commits:
-`<type>[(<scope>)][!]: <subject>`, such as `feat(<name>): add a --json flag`.
-The scope of a change to a tool is the tool's name.
+`<type>[(<scope>)][!]: <subject>`, such as `feat(<name>): add a --json flag`,
+in at most 72 characters. The `commit-msg` hook checks commit subjects, and CI
+checks pull request titles.
+
+| Type | Use for |
+| --- | --- |
+| `feat` | A new tool, or new or changed behavior in one |
+| `fix` | Corrected behavior in a tool |
+| `refactor` | A change to a tool's code that keeps its behavior |
+| `docs` | Documentation only |
+| `chore` | Anything else: CI, dependencies, tests only, configuration |
+
+- **Scope** is optional. For a change to a tool, it is the tool's name.
+- **Breaking changes** to a tool's command-line interface add `!` after the
+  type or scope, such as `feat(<name>)!: rename --out to --output`.
 
 ## Decision records
 
@@ -120,8 +133,9 @@ source, and does not travel with a clone:
 
 - The default branch carries a ruleset that requires a pull request and a
   linear history, and refuses deletion and non-fast-forward pushes. It
-  requires the `check` job of the `Decision records` workflow and the `result`
-  job of the `Tools` workflow to pass.
+  requires the `check` job of the `Decision records` workflow, the `title` job
+  of the `PR title` workflow, and the `result` job of the `Tools` workflow to
+  pass.
 - Pull requests are squash-merged.
 - Dependency graph, Dependabot alerts, and Dependabot security updates are
   enabled, which is what makes `.github/dependabot.yaml` take effect.

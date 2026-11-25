@@ -33,6 +33,7 @@ None yet. Each tool's `README.md` in `tools/<name>/` describes it.
 | `.workshop/` | Holds the [Workshop](https://ubuntu.com/workshop) definition and in-project SDKs of the development container. |
 | `docs/` | Holds documentation for developing the repository. |
 | `intent/` | Holds the repository's [decision records](intent/decisions/) and their configuration. |
+| `scripts/` | Holds scripts used to manage the repository itself. |
 | `tools/` | Holds one directory per tool. |
 
 ## Contributing
