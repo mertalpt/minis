@@ -1,0 +1,5 @@
+repos:
+  - repo: https://github.com/mertalpt/agent-collections
+    rev: intent-v0.3.0
+    hooks:
+      - id: intent-decisions
