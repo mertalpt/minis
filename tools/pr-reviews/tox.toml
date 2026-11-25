@@ -1,0 +1,24 @@
+requires = ["tox>=4.21", "tox-uv>=1"]
+env_list = ["lint", "static", "unit"]
+
+[env_run_base]
+runner = "uv-venv-lock-runner"
+dependency_groups = ["dev"]
+
+[env.format]
+description = "Apply formatting and import sorting"
+skip_install = true
+commands = [["ruff", "check", "--select", "I", "--fix"], ["ruff", "format"]]
+
+[env.lint]
+description = "Check formatting and lint"
+skip_install = true
+commands = [["ruff", "format", "--check"], ["ruff", "check"]]
+
+[env.static]
+description = "Type-check"
+commands = [["mypy", "src", "tests"]]
+
+[env.unit]
+description = "Run unit tests"
+commands = [["pytest", { replace = "posargs", extend = true }]]

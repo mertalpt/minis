@@ -19,10 +19,11 @@ and git credentials for GitHub, such as those `gh auth setup-git` configures.
 
 ## Tools
 
-None yet. Each tool's `README.md` in `tools/<name>/` describes it.
+Each tool's `README.md` in `tools/<name>/` describes it.
 
 | Tool | Description |
 | --- | --- |
+| [`pr-reviews`](tools/pr-reviews/) | Lists the GitHub pull requests waiting for your review, ranked by size and wait. |
 
 ## Repository Structure
 
