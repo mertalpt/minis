@@ -29,7 +29,7 @@ None yet. Each tool's `README.md` in `tools/<name>/` describes it.
 | Directory | Description |
 | --- | --- |
 | `.claude/` | Holds Claude Code settings. The rules and skills that `apm install` deploys here are ignored by Git. |
-| `.github/` | Holds GitHub configuration: CI workflows, Dependabot, and the pull request template. |
+| `.github/` | Holds GitHub configuration: CI workflows, Dependabot, and the issue and pull request templates. |
 | `.workshop/` | Holds the [Workshop](https://ubuntu.com/workshop) definition and in-project SDKs of the development container. |
 | `docs/` | Holds documentation for developing the repository. |
 | `intent/` | Holds the repository's [decision records](intent/decisions/) and their configuration. |
