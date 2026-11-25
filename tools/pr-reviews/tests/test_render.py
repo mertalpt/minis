@@ -40,10 +40,10 @@ def test_styling_does_not_change_the_layout() -> None:
     assert ESCAPES.sub("", styled) == plain
 
 
-def test_rows_fit_the_width_and_keep_the_approved_mark() -> None:
-    lines = render.to_table(queue(), width=100, links=False, color=False).splitlines()
-    assert all(len(line) <= 100 for line in lines)
-    assert any(line.endswith("...  approved") for line in lines)
+def test_rows_fit_the_width() -> None:
+    lines = render.to_table(queue(), width=90, links=False, color=False).splitlines()
+    assert all(len(line) <= 90 for line in lines)
+    assert any(line.endswith("...") for line in lines)
     for r in queue():
         [n] = [n for n, line in enumerate(lines) if r.pr.ref in line]
         assert lines[n + 1].strip() == r.pr.url

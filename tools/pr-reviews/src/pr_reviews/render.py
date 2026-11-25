@@ -5,13 +5,14 @@ from collections.abc import Sequence
 
 from pr_reviews.ranking import WORKING_DAY, Ranked
 
-HEADERS = ("SCORE", "SIZE", "BUCKET", "WAITED", "REQUEST", "PR")
+HEADERS = ("SCORE", "SIZE", "WAITED", "REQUEST", "PR")
 INDENT = "  "
 GAP = "  "
 MIN_TITLE = 20
-APPROVED_MARK = "  approved"
+APPROVED_MARK = " (+)"
 BOLD = "1"
 DIM = "2"
+GREEN = "32"
 RED = "1;31"
 
 
@@ -50,8 +51,8 @@ def to_table(
     """Return the queue as a table in ranked order.
 
     Overdue pull requests and the rest are listed in separate sections. Each
-    pull request takes two lines: its scores, reference, and title, then its
-    URL.
+    pull request takes two lines: its scores, request, reference, and title,
+    then its URL.
 
     Args:
         queue: The ranked pull requests.
@@ -68,9 +69,8 @@ def to_table(
         (
             str(r.priority),
             str(r.size),
-            r.size_bucket,
             f"{r.wait / WORKING_DAY:.1f}d",
-            r.pr.request.value,
+            r.pr.request.value + (APPROVED_MARK if r.pr.approved else ""),
             r.pr.ref,
         )
         for r in queue
@@ -96,16 +96,17 @@ def to_table(
         for n in members:
             pr = queue[n].pr
             cells = pad(rows[n])
+            if pr.approved:
+                mark = _style(APPROVED_MARK, GREEN, color)
+                cells[-2] = cells[-2].replace(APPROVED_MARK, mark, 1)
             if links:
                 # Padding stays outside the link so the escape codes, which
                 # take no columns, do not break alignment.
                 cells[-1] = _hyperlink(pr.ref, pr.url) + cells[-1][len(pr.ref) :]
-            mark = APPROVED_MARK if pr.approved else ""
             title = pr.title
             if title_width is not None:
-                title = _truncate(title, title_width - len(mark))
-            line = INDENT + GAP.join([*cells, title + mark])
-            lines.append(_style(line, DIM, color) if pr.approved else line)
+                title = _truncate(title, title_width)
+            lines.append(INDENT + GAP.join([*cells, title]))
             lines.append(url_indent + _style(pr.url, DIM, color))
     return "\n".join(lines)
 

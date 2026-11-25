@@ -49,14 +49,19 @@ URL.
 | Column | Meaning |
 | --- | --- |
 | `SCORE` | The priority: size score plus time score. |
-| `SIZE`, `BUCKET` | Lines changed outside ignored files, and the size bucket. |
+| `SIZE` | Lines changed outside ignored files. |
 | `WAITED` | Working days waited, as described under [Scoring](#scoring). |
-| `REQUEST` | `direct` if your review was requested from you, `team` if only through a team. |
+| `REQUEST` | `direct` if your review was requested from you, `team` if only through a team. `(+)` follows if the pull request is approved. |
 | `PR` | `owner/repo#number`. On a terminal, it is also a link to the pull request. |
-| `TITLE` | The title, followed by `approved` if GitHub's review decision is `APPROVED`. |
+| `TITLE` | The title. |
 
-On a terminal, titles are shortened to fit its width, and approved pull
-requests and URLs are dimmed. Setting `NO_COLOR` turns the styling off. When
+A pull request is approved when GitHub's review decision is `APPROVED`: it
+has the approving reviews the repository's branch protection requires.
+Submitting a review removes your request, so these approvals are usually
+from others.
+
+On a terminal, titles are shortened to fit its width, URLs are dimmed, and
+`(+)` is green. Setting `NO_COLOR` turns the styling off. When
 the output is not a terminal, titles are kept whole and nothing is styled.
 
 `--json` prints the same information, with one object per pull request in
