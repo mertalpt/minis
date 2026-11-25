@@ -1,0 +1,18 @@
+name: minis
+version: 1.0.0
+description: Agent collections used to develop minis.
+# Which agent platforms to deploy to.
+# Resolution order: --target flag > this field > 'apm config set target'
+# > auto-detect from filesystem.
+# Accepted values: agent-skills, antigravity, claude, codex, copilot, cursor, gemini, grok-bot, grok-build, hermes, kiro, opencode, windsurf
+targets:
+  - claude
+dependencies:
+  apm:
+    - mertalpt/agent-collections/collections/workshop#workshop-v0.1.0
+    - mertalpt/agent-collections/collections/common#common-v0.6.0
+    - mertalpt/agent-collections/collections/python#python-v0.1.0
+    - mertalpt/agent-collections/collections/intent#intent-v0.3.0
+  mcp: []
+includes: auto
+scripts: {}
