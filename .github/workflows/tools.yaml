@@ -1,0 +1,58 @@
+name: Tools
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  changed:
+    runs-on: ubuntu-24.04
+    outputs:
+      tools: ${{ steps.find.outputs.tools }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: find
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        # A tool is a changed tools/<name>/ that still holds a tox.toml.
+        run: |
+          tools=$(git diff --name-only "$BASE"..."$HEAD" -- tools/ \
+            | cut -d/ -f2 | sort -u \
+            | while read -r name; do
+                if [ -f "tools/$name/tox.toml" ]; then echo "$name"; fi
+              done \
+            | jq -Rnc '[inputs]')
+          echo "tools=$tools" >> "$GITHUB_OUTPUT"
+
+  check:
+    needs: changed
+    if: needs.changed.outputs.tools != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON(needs.changed.outputs.tools) }}
+        python: ["3.12", "3.15"]
+    defaults:
+      run:
+        working-directory: tools/${{ matrix.tool }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
+      - run: uvx --python "${{ matrix.python }}" tox -e lint,static,unit
+
+  # A single check to require in branch protection: the matrix job's names
+  # depend on which tools changed, and it is skipped when none did.
+  result:
+    needs: check
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          RESULT: ${{ needs.check.result }}
+        run: test "$RESULT" = success || test "$RESULT" = skipped

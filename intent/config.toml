@@ -1,0 +1,2 @@
+# The ref where change sets become final.
+canonical_branch = "origin/main"

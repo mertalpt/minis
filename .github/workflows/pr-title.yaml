@@ -1,0 +1,23 @@
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Unit tests
+        run: python3 -m unittest discover -s scripts/tests -t scripts
+      - name: Check the title
+        # Grouped Dependabot titles exceed the length limit; their prefix is
+        # set in .github/dependabot.yaml.
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: python3 scripts/check_commit_message.py --title "$TITLE"
