@@ -11,8 +11,11 @@ and their reasons are in the
 uvx --from "git+https://github.com/mertalpt/minis#subdirectory=tools/pr-reviews" pr-reviews queue
 ```
 
-With git credentials for GitHub over SSH instead of HTTPS, use
-`git+ssh://git@github.com/mertalpt/minis#subdirectory=tools/pr-reviews`.
+With git credentials for GitHub over SSH instead of HTTPS:
+
+```bash
+uvx --from "git+ssh://git@github.com/mertalpt/minis#subdirectory=tools/pr-reviews" pr-reviews queue
+```
 
 The tool only reads from GitHub. It uses the first GitHub token it finds in:
 

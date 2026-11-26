@@ -16,8 +16,11 @@ run `uv tool install` with the same source, and update it with
 
 The repository is private for now, so running a tool needs read access to it
 and git credentials for GitHub, such as those `gh auth setup-git` configures.
-With git set up for SSH instead, replace `git+https://github.com/` in the
-command with `git+ssh://git@github.com/`.
+With git set up for SSH instead:
+
+```bash
+uvx --from "git+ssh://git@github.com/mertalpt/minis#subdirectory=tools/<name>" <name> [args]
+```
 
 ## Tools
 
