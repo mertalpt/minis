@@ -99,6 +99,7 @@ Window    10 working days, full weight for 2
 | `--full-weight-days DAYS` | Working days during which work keeps full weight, F. Default: 2. |
 | `--window-days DAYS` | Working days after which work no longer counts, N. Default: 10. |
 | `--target KARMA` | The karma you aim for, shown beside the figure. Default: none. |
+| `--list` | Also list the counted pull requests under the summary. |
 | `--json` | Print a JSON object instead of the summary. |
 | `--config PATH` | Read this configuration file instead of the default one. |
 
@@ -141,6 +142,10 @@ summary shows `-` and says so, and `--json` gives `null`.
 Each summary line gives the weighted lines, rounded, and the number of pull
 requests counted. Owner filters from the configuration and flags apply to
 both sides.
+
+`--list` adds a table for each side, newest first, with each counted pull
+request's lines, weight, age in working days, the date it is counted from in
+the machine's local time, and its URL.
 
 `--json` prints an object with the keys `karma`, `target`, `window_days`,
 `full_weight_days`, `reviewed`, and `authored`. `reviewed` and `authored`

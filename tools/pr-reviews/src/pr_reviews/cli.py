@@ -115,6 +115,11 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="KARMA",
         help="the karma you aim for, shown beside the figure",
     )
+    karma_.add_argument(
+        "--list",
+        action="store_true",
+        help="also list the counted pull requests with their lines and weights",
+    )
     karma_.add_argument("--json", action="store_true", help="print JSON")
     return parser
 
@@ -242,6 +247,9 @@ def _karma(args: argparse.Namespace, cfg: config.Config) -> None:
     else:
         color = _is_terminal() and not os.environ.get("NO_COLOR")
         print(render.karma_to_text(result, target, color=color))
+        if args.list:
+            print()
+            print(render.karma_list(result, color=color))
 
 
 def _number[T: float | None](flag: float | None, configured: T) -> float | T:

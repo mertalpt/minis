@@ -195,3 +195,41 @@ def karma_to_text(karma: Karma, target: float | None, *, color: bool) -> str:
     rows.append(("Window", f"{w.days:g} working days, full weight for {w.full_days:g}"))
     label = max(len(name) for name, _ in rows)
     return "\n".join(f"{name.ljust(label)}  {text}" for name, text in rows)
+
+
+KARMA_HEADERS = ("LINES", "WEIGHT", "AGE", "DATED", "URL")
+
+
+def karma_list(karma: Karma, *, color: bool) -> str:
+    """Return the counted pull requests of each side as a table, newest first.
+
+    Dates are in the machine's local time zone.
+    """
+    lines = []
+    for name, s in (("Reviewed", karma.reviewed), ("Authored", karma.authored)):
+        lines.append(_style(f"{name} ({len(s.counted)})", BOLD, color))
+        if not s.counted:
+            continue
+        rows = [
+            (
+                str(c.lines),
+                f"{c.weight:.2f}",
+                f"{c.age / WORKING_DAY:.1f}d",
+                c.work.dated_at.astimezone().strftime("%Y-%m-%d %H:%M"),
+                c.work.url,
+            )
+            for c in s.counted
+        ]
+        widths = [max(len(r[i]) for r in [KARMA_HEADERS, *rows]) for i in range(4)]
+        lines.append(_style(_karma_row(KARMA_HEADERS, widths), BOLD, color))
+        lines += [_karma_row(r, widths) for r in rows]
+    return "\n".join(lines)
+
+
+def _karma_row(cells: Sequence[str], widths: Sequence[int]) -> str:
+    # Lines and weight align right; the URL, last, needs no padding.
+    padded = [
+        cell.rjust(w) if i < 2 else cell.ljust(w)
+        for i, (cell, w) in enumerate(zip(cells, widths, strict=False))
+    ]
+    return INDENT + GAP.join([*padded, cells[-1]])
