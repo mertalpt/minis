@@ -5,6 +5,7 @@ import fnmatch
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, tzinfo
+from typing import Protocol
 
 SIZE_SCORES: tuple[tuple[int, int], ...] = (
     (100, 21),
@@ -34,6 +35,25 @@ class ChangedFile:
     path: str
     additions: int
     deletions: int
+
+
+class Changes(Protocol):
+    """A pull request's changed lines, as GitHub reports them."""
+
+    @property
+    def additions(self) -> int:
+        """Lines added."""
+        ...
+
+    @property
+    def deletions(self) -> int:
+        """Lines deleted."""
+        ...
+
+    @property
+    def files(self) -> tuple[ChangedFile, ...]:
+        """The changed files."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -122,7 +142,7 @@ def is_ignored(path: str, patterns: Iterable[str]) -> bool:
     )
 
 
-def size(pr: PullRequest, patterns: Sequence[str]) -> int:
+def size(pr: Changes, patterns: Sequence[str]) -> int:
     """Return the lines added and deleted outside ignored files."""
     ignored = sum(
         f.additions + f.deletions for f in pr.files if is_ignored(f.path, patterns)

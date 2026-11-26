@@ -40,6 +40,10 @@ fixed scoring tables that need retuning when the team's review habits change.
   when git uses SSH, or provide a token in the environment.
 - The tool is low-stakes and best effort: it serves the common case, and
   known gaps are documented rather than handled.
+- The tool's `karma` subcommand, set in
+  [PR review karma](pr-reviews-karma.md), reuses the credentials, the
+  configuration file, the owner filters, the ignore patterns, and the
+  working-day measurement decided here.
 
 ## Decision
 
@@ -54,7 +58,7 @@ fixed scoring tables that need retuning when the team's review habits change.
   owners in the configuration.
 - Configuration is a TOML file at `$XDG_CONFIG_HOME/pr-reviews/config.toml`,
   unknown keys rejected. It sets the limit, the owner filters, the defaults of
-  the flags, and the ignore patterns.
+  the flags, the ignore patterns, and karma's settings.
 - The token comes from `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token`.
   It is held in memory only. Requests go over HTTPS from the standard
   library, so `gh` is optional. GraphQL errors that come with partial data
@@ -155,3 +159,9 @@ fixed scoring tables that need retuning when the team's review habits change.
 - Reviewers work in regions with different weekends.
 - GitHub adds a flag for generated files, or changes how search matches
   review requests.
+
+## Changelog
+
+| Previous version | Change |
+| --- | --- |
+| 6d1d98357d4694f6b8a1db0a406cb1034245e953 | Link to the karma record, which shares these decisions, and note karma's settings in the configuration |

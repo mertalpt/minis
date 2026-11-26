@@ -53,6 +53,8 @@ class FakeGitHub:
         self.responses = responses
 
     def __call__(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+        if query == github.VIEWER_QUERY:
+            return {"data": {"viewer": {"login": "me"}}}
         if query == github.FILES_QUERY:
             key = (variables["id"], variables["after"])
         else:
@@ -127,15 +129,19 @@ def test_partial_data_warns() -> None:
     assert client.warnings == ["protected by SAML"]
 
 
+@pytest.mark.parametrize("command", ["queue", "karma"])
 def test_missing_credentials(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Any
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Any,
+    command: str,
 ) -> None:
     monkeypatch.delenv("GH_TOKEN", raising=False)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.setenv("PATH", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
 
-    assert cli.main(["queue"]) == 1
+    assert cli.main([command]) == 1
     assert "no GitHub credentials" in capsys.readouterr().err
 
 
@@ -188,3 +194,83 @@ def test_queue_shows_the_top_requests(
 
     assert cli.main(["queue", "--top", "0", "--json"]) == 0
     assert len(json.loads(capsys.readouterr().out)) == 25
+
+
+SINCE = datetime(2026, 11, 9, 8, tzinfo=UTC)
+REVIEWED = github.SEARCH_REVIEWED.format(since="2026-11-09T08:00:00Z")
+AUTHORED = github.SEARCH_AUTHORED.format(since="2026-11-09T08:00:00Z")
+
+
+def work_node(number: int, **overrides: Any) -> dict[str, Any]:
+    node = pr_node(number, **overrides)
+    for key in ("title", "reviewDecision"):
+        del node[key]
+    return node
+
+
+def test_reviewed_work_is_dated_at_the_first_submitted_review() -> None:
+    reviews = [
+        {"submittedAt": None},
+        {"submittedAt": "2026-11-18T10:00:00Z"},
+        {"submittedAt": "2026-11-19T10:00:00Z"},
+    ]
+    fake = FakeGitHub(
+        {
+            (REVIEWED, None): page(
+                [
+                    work_node(1, reviews={"nodes": reviews}),
+                    work_node(2, reviews={"nodes": [{"submittedAt": None}]}),
+                ]
+            )
+        }
+    )
+
+    [work] = github.Client(fake).reviewed_work(SINCE)
+
+    assert work.ref == "acme/app#1"
+    assert work.dated_at == datetime(2026, 11, 18, 10, tzinfo=UTC)
+    assert work.files == (ChangedFile("a.py", 30, 5),)
+
+
+def test_authored_work_is_dated_at_ready_for_review() -> None:
+    ready = {"nodes": [{"createdAt": "2026-11-20T10:00:00Z"}]}
+    fake = FakeGitHub(
+        {
+            (AUTHORED, None): page(
+                [
+                    work_node(1, timelineItems=ready),
+                    work_node(2, timelineItems={"nodes": []}),
+                ]
+            )
+        }
+    )
+
+    one, two = github.Client(fake).authored_work(SINCE)
+
+    assert one.dated_at == datetime(2026, 11, 20, 10, tzinfo=UTC)
+    assert two.dated_at == datetime(2026, 11, 2, 9, tzinfo=UTC)
+
+
+def test_karma_flags_override_the_configuration(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Any
+) -> None:
+    def fake(query: str, variables: dict[str, Any]) -> dict[str, Any]:
+        if query == github.VIEWER_QUERY:
+            return {"data": {"viewer": {"login": "me"}}}
+        return page([])
+
+    (tmp_path / "pr-reviews").mkdir()
+    (tmp_path / "pr-reviews" / "config.toml").write_text(
+        "[karma]\nwindow_days = 2\nfull_weight_days = 1\ntarget = 2\n"
+    )
+    monkeypatch.setenv("GH_TOKEN", TOKEN)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setattr(github, "http_transport", lambda token: fake)
+
+    assert cli.main(["karma", "--full-weight-days", "3"]) == 1
+    assert "shorter than the window" in capsys.readouterr().err
+
+    assert cli.main(["karma", "--full-weight-days", "3", "--window-days", "20"]) == 0
+    out = capsys.readouterr().out
+    assert "no authored work" in out
+    assert "target 2" in out

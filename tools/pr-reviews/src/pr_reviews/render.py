@@ -1,8 +1,10 @@
-"""Output formats for the ranked queue."""
+"""Output formats for the ranked queue and karma."""
 
 import json
 from collections.abc import Sequence
+from typing import Any
 
+from pr_reviews.karma import Karma, Side
 from pr_reviews.ranking import WORKING_DAY, Ranked
 
 HEADERS = ("SCORE", "SIZE", "WAITED", "REQUEST", "PR")
@@ -130,3 +132,115 @@ def _style(text: str, sgr: str, color: bool) -> str:
 def _hyperlink(text: str, url: str) -> str:
     # OSC 8; terminals without support show the text alone.
     return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
+
+
+def karma_to_json(karma: Karma, target: float | None) -> str:
+    """Return the karma and its counted pull requests as a JSON object."""
+    value = karma.value
+
+    def side(s: Side) -> dict[str, Any]:
+        return {
+            "weighted_lines": round(s.weighted_lines, 1),
+            "lines": s.lines,
+            "prs": len(s.counted),
+            "pull_requests": [
+                {
+                    "ref": c.work.ref,
+                    "url": c.work.url,
+                    "lines": c.lines,
+                    "date": c.work.dated_at.isoformat(),
+                    "age_days": round(c.age / WORKING_DAY, 3),
+                    "weight": round(c.weight, 3),
+                }
+                for c in s.counted
+            ],
+        }
+
+    return json.dumps(
+        {
+            "karma": None if value is None else round(value, 3),
+            "target": target,
+            "window_days": karma.window.days,
+            "full_weight_days": karma.window.full_days,
+            "reviewed": side(karma.reviewed),
+            "authored": side(karma.authored),
+        },
+        indent=2,
+    )
+
+
+def karma_to_text(karma: Karma, target: float | None, *, color: bool) -> str:
+    """Return the karma as a short summary.
+
+    Args:
+        karma: The karma to show.
+        target: The user's target, or None.
+        color: Whether to style the output with ANSI escape codes.
+
+    Returns:
+        The summary.
+    """
+    value = karma.value
+    figure = "-" if value is None else f"{value:.2f}"
+    if target is not None:
+        figure += f"  (target {target:g})"
+    if value is None:
+        figure += "  no authored work in the window"
+    sides = [
+        (name, f"{s.weighted_lines:.0f}", str(s.lines), str(len(s.counted)))
+        for name, s in (("Reviewed", karma.reviewed), ("Authored", karma.authored))
+    ]
+    table = [("", *SUMMARY_HEADERS), *sides]
+    label = len("Reviewed")
+    widths = [max(len(r[i]) for r in table) for i in range(1, 4)]
+    w = karma.window
+    window = f"{w.days:g} working days, full weight for {w.full_days:g}"
+    lines = [f"{'Karma'.ljust(label)}  {_style(figure, BOLD, color)}", ""]
+    for n, (name, *cells) in enumerate(table):
+        row = GAP.join(c.rjust(w) for c, w in zip(cells, widths, strict=True))
+        lines.append(
+            f"{name.ljust(label)}  {_style(row, BOLD, color) if n == 0 else row}"
+        )
+    lines += ["", f"{'Window'.ljust(label)}  {window}"]
+    return "\n".join(lines)
+
+
+SUMMARY_HEADERS = ("WEIGHTED", "LINES", "PRS")
+
+
+KARMA_HEADERS = ("LINES", "WEIGHT", "AGE", "DATED", "URL")
+
+
+def karma_list(karma: Karma, *, color: bool) -> str:
+    """Return the counted pull requests of each side as a table, newest first.
+
+    Dates are in the machine's local time zone.
+    """
+    lines = []
+    for name, s in (("Reviewed", karma.reviewed), ("Authored", karma.authored)):
+        lines.append(_style(f"{name} ({len(s.counted)})", BOLD, color))
+        if not s.counted:
+            continue
+        rows = [
+            (
+                str(c.lines),
+                f"{c.weight:.2f}",
+                f"{c.age / WORKING_DAY:.1f}d",
+                c.work.dated_at.astimezone().strftime("%Y-%m-%d %H:%M"),
+                c.work.url,
+            )
+            for c in s.counted
+        ]
+        widths = [max(len(r[i]) for r in [KARMA_HEADERS, *rows]) for i in range(4)]
+        lines.append(_style(_karma_row(KARMA_HEADERS, widths), BOLD, color))
+        lines += [_karma_row(r, widths) for r in rows]
+    return "\n".join(lines)
+
+
+def _karma_row(cells: Sequence[str], widths: Sequence[int]) -> str:
+    # Lines and weight align right; the URL, last, needs no padding.
+    padded = [
+        cell.rjust(w) if i < 2 else cell.ljust(w)
+        for i, (cell, w) in enumerate(zip(cells, widths, strict=False))
+    ]
+    return INDENT + GAP.join([*padded, cells[-1]])

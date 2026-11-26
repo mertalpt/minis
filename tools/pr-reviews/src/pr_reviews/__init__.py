@@ -1,4 +1,4 @@
-"""List the GitHub pull requests waiting for your review, ranked."""
+"""List the GitHub pull requests waiting for your review, and show review karma."""
 
 import sys
 

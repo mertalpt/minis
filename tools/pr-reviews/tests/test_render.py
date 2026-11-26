@@ -1,7 +1,7 @@
 import re
 from datetime import UTC, datetime, timedelta
 
-from pr_reviews import ranking, render
+from pr_reviews import karma, ranking, render
 from pr_reviews.ranking import PullRequest, Request
 
 NOW = datetime(2026, 11, 24, tzinfo=UTC)
@@ -47,3 +47,36 @@ def test_rows_fit_the_width() -> None:
     for r in queue():
         [n] = [n for n, line in enumerate(lines) if r.pr.ref in line]
         assert lines[n + 1].strip() == r.pr.url
+
+
+def test_karma_list_shows_every_counted_pull_request() -> None:
+    works = [
+        karma.Work(
+            "acme",
+            "app",
+            n,
+            f"https://github.com/acme/app/pull/{n}",
+            NOW - timedelta(hours=n),
+            10 * n,
+            0,
+            (),
+        )
+        for n in (1, 22, 333)
+    ]
+    result = karma.compute(
+        works,
+        [],
+        now=NOW,
+        tz=UTC,
+        window=karma.Window(2, 10),
+        include_owners=[],
+        exclude_owners=[],
+        ignore=[],
+        ignore_by_repo={},
+    )
+    lines = render.karma_list(result, color=False).splitlines()
+    assert lines[0] == "Reviewed (3)"
+    assert lines[-1] == "Authored (0)"
+    rows = [line for line in lines if "/pull/" in line]
+    assert [row.split()[0] for row in rows] == ["10", "220", "3330"]
+    assert len({row.index("https://") for row in rows}) == 1
