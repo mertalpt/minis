@@ -1,4 +1,4 @@
-"""Read review requests from the GitHub.com GraphQL API."""
+"""Read pull requests from the GitHub.com GraphQL API."""
 
 import json
 import os
@@ -7,16 +7,19 @@ import subprocess
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterator
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from pr_reviews.karma import Work
 from pr_reviews.ranking import ChangedFile, PullRequest, Request
 
 API_URL = "https://api.github.com/graphql"
 SEARCH_ALL = "is:pr is:open draft:false archived:false review-requested:@me"
 SEARCH_DIRECT = "is:pr is:open draft:false archived:false user-review-requested:@me"
+SEARCH_REVIEWED = "is:pr reviewed-by:@me -author:@me updated:>={since}"
+SEARCH_AUTHORED = "is:pr author:@me draft:false updated:>={since}"
 
 Transport = Callable[[str, dict[str, Any]], dict[str, Any]]
 """Sends a GraphQL query with variables and returns the response body."""
@@ -114,6 +117,46 @@ query($q: String!, $after: String) {
 }
 """
 
+_WORK = f"""
+        id number url createdAt additions deletions
+        repository {{ name owner {{ login }} }}
+        files(first: 100) {{ {_FILES} }}
+"""
+
+VIEWER_QUERY = "query { viewer { login } }"
+
+# Reviews list oldest first, and a user has at most one pending review, so
+# the first few hold the user's first submitted review.
+REVIEWED_QUERY = f"""
+query($q: String!, $after: String, $login: String!) {{
+  search(query: $q, type: ISSUE, first: 50, after: $after) {{
+    pageInfo {{ hasNextPage endCursor }}
+    nodes {{
+      ... on PullRequest {{
+        {_WORK}
+        reviews(author: $login, first: 10) {{ nodes {{ submittedAt }} }}
+      }}
+    }}
+  }}
+}}
+"""
+
+AUTHORED_QUERY = f"""
+query($q: String!, $after: String) {{
+  search(query: $q, type: ISSUE, first: 50, after: $after) {{
+    pageInfo {{ hasNextPage endCursor }}
+    nodes {{
+      ... on PullRequest {{
+        {_WORK}
+        timelineItems(itemTypes: [READY_FOR_REVIEW_EVENT], last: 1) {{
+          nodes {{ ... on ReadyForReviewEvent {{ createdAt }} }}
+        }}
+      }}
+    }}
+  }}
+}}
+"""
+
 FILES_QUERY = f"""
 query($id: ID!, $after: String) {{
   node(id: $id) {{
@@ -176,6 +219,41 @@ class _PullRequest(_Model):
     files: _Files | None
 
 
+class _Review(_Model):
+    submitted_at: datetime | None = Field(alias="submittedAt")
+
+
+class _Reviews(_Model):
+    nodes: list[_Review | None]
+
+
+class _WorkPullRequest(_Model):
+    id: str
+    number: int
+    url: str
+    created_at: datetime = Field(alias="createdAt")
+    additions: int
+    deletions: int
+    repository: _Repository
+    files: _Files | None
+
+
+class _ReviewedPullRequest(_WorkPullRequest):
+    reviews: _Reviews
+
+
+class _AuthoredPullRequest(_WorkPullRequest):
+    timeline_items: _Timeline = Field(alias="timelineItems")
+
+
+class _Viewer(_Model):
+    login: str
+
+
+class _ViewerData(_Model):
+    viewer: _Viewer
+
+
 class _Search(_Model):
     page_info: _PageInfo = Field(alias="pageInfo")
     # Search returns other kinds of nodes as empty objects, and nodes the
@@ -196,7 +274,7 @@ class _FilesData(_Model):
 
 
 class Client:
-    """Reads the review requests visible to the user's credentials."""
+    """Reads the pull requests visible to the user's credentials."""
 
     def __init__(self, transport: Transport) -> None:
         """Create a client that sends queries through a transport."""
@@ -217,10 +295,71 @@ class Client:
             prs.append(self._convert(node, request))
         return prs
 
-    def _search(self, query: str, q: str) -> Iterator[dict[str, Any]]:
+    def reviewed_work(self, since: datetime) -> list[Work]:
+        """Return the pull requests of others that the user reviewed.
+
+        Each is dated at the user's first submitted review.
+
+        Args:
+            since: An aware instant; only pull requests updated since are
+                returned.
+
+        Raises:
+            GitHubError: A request failed.
+        """
+        login = self._query(VIEWER_QUERY, {}, _ViewerData).viewer.login
+        q = SEARCH_REVIEWED.format(since=_search_time(since))
+        works = []
+        for raw in self._search(REVIEWED_QUERY, q, login=login):
+            node = _validate(_ReviewedPullRequest, raw)
+            submitted = [
+                r.submitted_at
+                for r in node.reviews.nodes
+                if r is not None and r.submitted_at is not None
+            ]
+            if submitted:
+                works.append(self._work(node, min(submitted)))
+        return works
+
+    def authored_work(self, since: datetime) -> list[Work]:
+        """Return the non-draft pull requests the user opened.
+
+        Each is dated at when it was last marked ready for review, or at its
+        creation if it never was a draft.
+
+        Args:
+            since: An aware instant; only pull requests updated since are
+                returned.
+
+        Raises:
+            GitHubError: A request failed.
+        """
+        q = SEARCH_AUTHORED.format(since=_search_time(since))
+        works = []
+        for raw in self._search(AUTHORED_QUERY, q):
+            node = _validate(_AuthoredPullRequest, raw)
+            ready = [e.created_at for e in node.timeline_items.nodes if e is not None]
+            works.append(self._work(node, ready[-1] if ready else node.created_at))
+        return works
+
+    def _work(self, node: _WorkPullRequest, dated_at: datetime) -> Work:
+        return Work(
+            owner=node.repository.owner.login,
+            repo=node.repository.name,
+            number=node.number,
+            url=node.url,
+            dated_at=dated_at,
+            additions=node.additions,
+            deletions=node.deletions,
+            files=tuple(self._files(node.id, node.files)),
+        )
+
+    def _search(self, query: str, q: str, **variables: str) -> Iterator[dict[str, Any]]:
         after: str | None = None
         while True:
-            data = self._query(query, {"q": q, "after": after}, _SearchData)
+            data = self._query(
+                query, {"q": q, "after": after, **variables}, _SearchData
+            )
             yield from (node for node in data.search.nodes if node and "id" in node)
             if not data.search.page_info.has_next_page:
                 return
@@ -237,13 +376,12 @@ class Client:
             ready_at=ready[-1] if ready else node.created_at,
             additions=node.additions,
             deletions=node.deletions,
-            files=tuple(self._files(node)),
+            files=tuple(self._files(node.id, node.files)),
             approved=node.review_decision == "APPROVED",
             request=request,
         )
 
-    def _files(self, node: _PullRequest) -> Iterator[ChangedFile]:
-        files = node.files
+    def _files(self, pr_id: str, files: _Files | None) -> Iterator[ChangedFile]:
         while files is not None:
             for f in files.nodes:
                 if f is not None:
@@ -252,7 +390,7 @@ class Client:
                 return
             data = self._query(
                 FILES_QUERY,
-                {"id": node.id, "after": files.page_info.end_cursor},
+                {"id": pr_id, "after": files.page_info.end_cursor},
                 _FilesData,
             )
             files = data.node.files if data.node is not None else None
@@ -269,6 +407,10 @@ class Client:
         # read, such as organizations that enforce SAML single sign-on.
         self.warnings.extend(m for m in messages if m not in self.warnings)
         return _validate(model, body["data"])
+
+
+def _search_time(instant: datetime) -> str:
+    return instant.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _validate[M: BaseModel](model: type[M], data: object) -> M:

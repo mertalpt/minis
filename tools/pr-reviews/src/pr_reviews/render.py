@@ -1,8 +1,10 @@
-"""Output formats for the ranked queue."""
+"""Output formats for the ranked queue and karma."""
 
 import json
 from collections.abc import Sequence
+from typing import Any
 
+from pr_reviews.karma import Karma, Side
 from pr_reviews.ranking import WORKING_DAY, Ranked
 
 HEADERS = ("SCORE", "SIZE", "WAITED", "REQUEST", "PR")
@@ -130,3 +132,66 @@ def _style(text: str, sgr: str, color: bool) -> str:
 def _hyperlink(text: str, url: str) -> str:
     # OSC 8; terminals without support show the text alone.
     return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
+
+
+def karma_to_json(karma: Karma, target: float | None) -> str:
+    """Return the karma and its counted pull requests as a JSON object."""
+    value = karma.value
+
+    def side(s: Side) -> dict[str, Any]:
+        return {
+            "weighted_lines": round(s.weighted_lines, 1),
+            "prs": len(s.counted),
+            "pull_requests": [
+                {
+                    "ref": c.work.ref,
+                    "url": c.work.url,
+                    "lines": c.lines,
+                    "date": c.work.dated_at.isoformat(),
+                    "age_days": round(c.age / WORKING_DAY, 3),
+                    "weight": round(c.weight, 3),
+                }
+                for c in s.counted
+            ],
+        }
+
+    return json.dumps(
+        {
+            "karma": None if value is None else round(value, 3),
+            "target": target,
+            "window_days": karma.window.days,
+            "full_weight_days": karma.window.full_days,
+            "reviewed": side(karma.reviewed),
+            "authored": side(karma.authored),
+        },
+        indent=2,
+    )
+
+
+def karma_to_text(karma: Karma, target: float | None, *, color: bool) -> str:
+    """Return the karma as a short summary.
+
+    Args:
+        karma: The karma to show.
+        target: The user's target, or None.
+        color: Whether to style the output with ANSI escape codes.
+
+    Returns:
+        The summary.
+    """
+    value = karma.value
+    figure = "-" if value is None else f"{value:.2f}"
+    if target is not None:
+        figure += f"  (target {target:g})"
+    if value is None:
+        figure += "  no authored work in the window"
+    rows = [("Karma", _style(figure, BOLD, color))]
+    for name, s in (("Reviewed", karma.reviewed), ("Authored", karma.authored)):
+        n = len(s.counted)
+        rows.append(
+            (name, f"{s.weighted_lines:.0f} lines in {n} PR{'' if n == 1 else 's'}")
+        )
+    w = karma.window
+    rows.append(("Window", f"{w.days:g} working days, full weight for {w.full_days:g}"))
+    label = max(len(name) for name, _ in rows)
+    return "\n".join(f"{name.ljust(label)}  {text}" for name, text in rows)

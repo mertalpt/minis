@@ -28,7 +28,7 @@ Each tool's `README.md` in `tools/<name>/` describes it.
 
 | Tool | Description |
 | --- | --- |
-| [`pr-reviews`](tools/pr-reviews/) | Lists the GitHub pull requests waiting for your review, ranked by size and wait. |
+| [`pr-reviews`](tools/pr-reviews/) | Lists the GitHub pull requests waiting for your review, ranked by size and wait, and shows your review karma: lines reviewed against lines authored. |
 
 ## Repository Structure
 

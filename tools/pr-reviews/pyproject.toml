@@ -1,7 +1,7 @@
 [project]
 name = "pr-reviews"
 version = "0.1.0"
-description = "List the GitHub pull requests waiting for your review, ranked by size and wait."
+description = "List the GitHub pull requests waiting for your review, ranked by size and wait, and show your review karma."
 readme = "README.md"
 authors = [
     { name = "Mert Alp Taytak", email = "mertalptaytak@gmail.com" }

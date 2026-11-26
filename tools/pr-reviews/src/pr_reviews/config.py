@@ -8,6 +8,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    NonNegativeFloat,
     NonNegativeInt,
     PositiveFloat,
     ValidationError,
@@ -42,6 +43,16 @@ class RepoConfig(BaseModel):
     ignore: list[str] = []
 
 
+class KarmaConfig(BaseModel):
+    """Settings for `karma`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    full_weight_days: NonNegativeFloat = 2
+    window_days: PositiveFloat = 10
+    target: PositiveFloat | None = None
+
+
 class Config(BaseModel):
     """The tool's configuration."""
 
@@ -55,6 +66,7 @@ class Config(BaseModel):
     exclude_owners: list[str] = []
     ignore: list[str] = Field(default_factory=lambda: list(DEFAULT_IGNORE))
     repos: dict[str, RepoConfig] = {}
+    karma: KarmaConfig = Field(default_factory=KarmaConfig)
 
 
 def default_path() -> Path:
