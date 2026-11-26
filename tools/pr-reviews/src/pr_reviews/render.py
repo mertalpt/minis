@@ -141,6 +141,7 @@ def karma_to_json(karma: Karma, target: float | None) -> str:
     def side(s: Side) -> dict[str, Any]:
         return {
             "weighted_lines": round(s.weighted_lines, 1),
+            "lines": s.lines,
             "prs": len(s.counted),
             "pull_requests": [
                 {
@@ -185,16 +186,26 @@ def karma_to_text(karma: Karma, target: float | None, *, color: bool) -> str:
         figure += f"  (target {target:g})"
     if value is None:
         figure += "  no authored work in the window"
-    rows = [("Karma", _style(figure, BOLD, color))]
-    for name, s in (("Reviewed", karma.reviewed), ("Authored", karma.authored)):
-        n = len(s.counted)
-        rows.append(
-            (name, f"{s.weighted_lines:.0f} lines in {n} PR{'' if n == 1 else 's'}")
-        )
+    sides = [
+        (name, f"{s.weighted_lines:.0f}", str(s.lines), str(len(s.counted)))
+        for name, s in (("Reviewed", karma.reviewed), ("Authored", karma.authored))
+    ]
+    table = [("", *SUMMARY_HEADERS), *sides]
+    label = len("Reviewed")
+    widths = [max(len(r[i]) for r in table) for i in range(1, 4)]
     w = karma.window
-    rows.append(("Window", f"{w.days:g} working days, full weight for {w.full_days:g}"))
-    label = max(len(name) for name, _ in rows)
-    return "\n".join(f"{name.ljust(label)}  {text}" for name, text in rows)
+    window = f"{w.days:g} working days, full weight for {w.full_days:g}"
+    lines = [f"{'Karma'.ljust(label)}  {_style(figure, BOLD, color)}", ""]
+    for n, (name, *cells) in enumerate(table):
+        row = GAP.join(c.rjust(w) for c, w in zip(cells, widths, strict=True))
+        lines.append(
+            f"{name.ljust(label)}  {_style(row, BOLD, color) if n == 0 else row}"
+        )
+    lines += ["", f"{'Window'.ljust(label)}  {window}"]
+    return "\n".join(lines)
+
+
+SUMMARY_HEADERS = ("WEIGHTED", "LINES", "PRS")
 
 
 KARMA_HEADERS = ("LINES", "WEIGHT", "AGE", "DATED", "URL")

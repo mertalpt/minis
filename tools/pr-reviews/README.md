@@ -87,8 +87,11 @@ out and the reviews you give back.
 
 ```text
 Karma     1.84  (target 2)
-Reviewed  1234 lines in 7 PRs
-Authored  671 lines in 3 PRs
+
+          WEIGHTED  LINES  PRS
+Reviewed      1234   1890    7
+Authored       671    720    3
+
 Window    10 working days, full weight for 2
 ```
 
@@ -139,8 +142,8 @@ With the defaults, work weighs 1 for its first 2 working days, 0.94 at 4,
 same sum over authored work. When no authored lines fall in the window, the
 summary shows `-` and says so, and `--json` gives `null`.
 
-Each summary line gives the weighted lines, rounded, and the number of pull
-requests counted. Owner filters from the configuration and flags apply to
+For each side, the summary gives the weighted lines, rounded, the lines
+before weighting, and the number of pull requests counted. Owner filters from the configuration and flags apply to
 both sides.
 
 `--list` adds a table for each side, newest first, with each counted pull
@@ -149,7 +152,8 @@ the machine's local time, and its URL.
 
 `--json` prints an object with the keys `karma`, `target`, `window_days`,
 `full_weight_days`, `reviewed`, and `authored`. `reviewed` and `authored`
-each hold `weighted_lines`, `prs`, and `pull_requests`, one object per
+each hold `weighted_lines`, `lines` (unweighted), `prs`, and
+`pull_requests`, one object per
 counted pull request, newest first, with the keys `ref`, `url`, `lines`,
 `date`, `age_days`, and `weight`.
 

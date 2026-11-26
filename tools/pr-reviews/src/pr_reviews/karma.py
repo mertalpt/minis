@@ -94,6 +94,11 @@ class Side:
         """The sum of the weighted lines."""
         return sum(c.weighted_lines for c in self.counted)
 
+    @property
+    def lines(self) -> int:
+        """The sum of the lines, unweighted."""
+        return sum(c.lines for c in self.counted)
+
 
 @dataclass(frozen=True)
 class Karma:
