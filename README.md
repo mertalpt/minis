@@ -16,13 +16,19 @@ run `uv tool install` with the same source, and update it with
 
 The repository is private for now, so running a tool needs read access to it
 and git credentials for GitHub, such as those `gh auth setup-git` configures.
+With git set up for SSH instead:
+
+```bash
+uvx --from "git+ssh://git@github.com/mertalpt/minis#subdirectory=tools/<name>" <name> [args]
+```
 
 ## Tools
 
-None yet. Each tool's `README.md` in `tools/<name>/` describes it.
+Each tool's `README.md` in `tools/<name>/` describes it.
 
 | Tool | Description |
 | --- | --- |
+| [`pr-reviews`](tools/pr-reviews/) | Lists the GitHub pull requests waiting for your review, ranked by size and wait. |
 
 ## Repository Structure
 
