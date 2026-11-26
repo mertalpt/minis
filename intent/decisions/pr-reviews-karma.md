@@ -30,6 +30,10 @@ can swing.
   filter by review date. `PullRequest.reviews(author:)` lists a user's
   reviews oldest first, with their state and submission time; a pending
   review has no submission time.
+- Submitting a comment review sets the pull request's `updatedAt` to the
+  review's submission time, visible within about 20 seconds, after which
+  search's `updated:` qualifier matches it. That approvals and requests for
+  changes on others' pull requests do the same is inferred.
 - Replying in a review thread creates a `COMMENTED` review, which
   `reviewed-by:` matches, including on the user's own pull requests.
 - GitHub records the commit each review was made on, but sizing the pull

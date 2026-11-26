@@ -236,9 +236,10 @@ ranked; `--top` only limits how many are shown, in the table and in
 - Weekends are Saturday and Sunday in the machine's time zone, for every
   reviewer and author.
 - Only GitHub.com is supported.
-- Karma searches the pull requests updated since shortly before the window,
-  assuming that submitting a review or marking a pull request ready for
-  review updates it.
+- Karma searches the pull requests updated since shortly before the window.
+  Submitting a comment review is known to update a pull request; that
+  approvals, requests for changes, and marking a pull request ready for
+  review do the same is assumed.
 - Karma counts a pull request's lines when the tool runs, not when you
   reviewed it, so one that grows after your review counts its new size.
 - Karma counts a comment review the same as an approval, whatever its
